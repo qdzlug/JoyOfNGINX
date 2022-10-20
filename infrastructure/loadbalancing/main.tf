@@ -115,7 +115,7 @@ resource "azurerm_network_interface_security_group_association" "nginxlb" {
   network_security_group_id = azurerm_network_security_group.nginx_nsg.id
 }
 
-resource "azurerm_linux_virtual_machine" "nginx_vm" {
+resource "azurerm_linux_virtual_machine" "nginx_lb" {
   name                  = "nginxVM"
   location              = azurerm_resource_group.rg.location
   resource_group_name   = azurerm_resource_group.rg.name
@@ -135,7 +135,7 @@ resource "azurerm_linux_virtual_machine" "nginx_vm" {
     version   = "latest"
   }
 
-  computer_name                   = "nginxvm"
+  computer_name                   = "nginxlb"
   admin_username                  = "azureuser"
   disable_password_authentication = true
 

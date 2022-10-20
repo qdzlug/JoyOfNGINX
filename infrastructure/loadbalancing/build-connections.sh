@@ -10,6 +10,7 @@ TERRAFORMARGS="output --json"
 JQ=$(which jq)
 SSHKEY="nginx.pem"
 SSHCONFIG="nginx.ssh.config"
+ANSIBLEHOSTS="nginx.ansible.hosts"
 
 ## Parse out the IP addresses we need
 PUBLICIP=$($TERRAFORM $TERRAFORMARGS | $JQ '.nginxlb_public_ip_address.value')
@@ -56,8 +57,29 @@ echo " "                                     >> $SSHCONFIG
 
 echo "SSH configuration written"
 echo " "
+
+# Build Ansible Configuration
+
+echo "[all:vars]" > $ANSIBLEHOSTS
+echo "ansible_user=azureuser" >> $ANSIBLEHOSTS
+echo "ansible_become=yes" >> $ANSIBLEHOSTS
+echo "ansible_become_method=sudo" >> $ANSIBLEHOSTS
+echo "ansible_python_interpreter=/usr/bin/python3" >> $ANSIBLEHOSTS
+echo "ansible_ssh_common_args='-F $SSHCONFIG'" >> $ANSIBLEHOSTS
+echo " " >> $ANSIBLEHOSTS
+echo "[nginx_lb]" >> $ANSIBLEHOSTS
+echo "nginxlb" >> $ANSIBLEHOSTS
+echo " " >> $ANSIBLEHOSTS
+echo "[nginx_upstream]" >> $ANSIBLEHOSTS
+echo "nginx01" >> $ANSIBLEHOSTS
+echo "nginx02" >> $ANSIBLEHOSTS
+echo "nginx03" >> $ANSIBLEHOSTS
+echo " " >> $ANSIBLEHOSTS
+
+
 echo "To use..."
 echo " "
+echo "====> Using SSH with this deployment"
 echo "Add $SSHKEY to your ssh agent:"
 echo "     ssh-add $SSHKEY"
 echo " "
@@ -69,4 +91,14 @@ echo "      nginxlb : NGINX Loadbalancer"
 echo "      nginx01 : NGINX Upstream 1"
 echo "      nginx02 : NGINX Upstream 2"
 echo "      nginx03 : NGINX Upstream 3"
+echo " "
+
+echo "====> Using SSH with this deployment"
+echo "Ensure you added the SSHKEY to your agent"
+echo "     ssh-add $SSHKEY"
+echo ""
+echo "Test the inventory:"
+echo "     ansible-playbook -i $ANSIBLEHOSTS ansible-ping.yaml"
+echo " "
+echo "As long as there are no errors you are configured correctly"
 echo " "

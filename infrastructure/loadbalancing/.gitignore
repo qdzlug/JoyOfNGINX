@@ -33,3 +33,8 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+# Ignore script output...
+nginx.ssh.config
+nginx.ansible.hosts
+nginx.pem
