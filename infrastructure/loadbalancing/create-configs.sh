@@ -60,21 +60,21 @@ echo " "
 
 # Build Ansible Configuration
 
-echo "[all:vars]" > $ANSIBLEHOSTS
-echo "ansible_user=azureuser" >> $ANSIBLEHOSTS
-echo "ansible_become=yes" >> $ANSIBLEHOSTS
-echo "ansible_become_method=sudo" >> $ANSIBLEHOSTS
-echo "ansible_python_interpreter=/usr/bin/python3" >> $ANSIBLEHOSTS
-echo "ansible_ssh_common_args='-F $SSHCONFIG'" >> $ANSIBLEHOSTS
-echo " " >> $ANSIBLEHOSTS
-echo "[nginx_lb]" >> $ANSIBLEHOSTS
-echo "nginxlb" >> $ANSIBLEHOSTS
-echo " " >> $ANSIBLEHOSTS
-echo "[nginx_upstream]" >> $ANSIBLEHOSTS
-echo "nginx01" >> $ANSIBLEHOSTS
-echo "nginx02" >> $ANSIBLEHOSTS
-echo "nginx03" >> $ANSIBLEHOSTS
-echo " " >> $ANSIBLEHOSTS
+echo "[all:vars]"                                  > $ANSIBLEHOSTS
+echo "ansible_user=azureuser"                     >> $ANSIBLEHOSTS
+echo "ansible_become=yes"                         >> $ANSIBLEHOSTS
+echo "ansible_become_method=sudo"                 >> $ANSIBLEHOSTS
+echo "ansible_python_interpreter=/usr/bin/python3">> $ANSIBLEHOSTS
+echo "ansible_ssh_common_args='-F $SSHCONFIG'"    >> $ANSIBLEHOSTS
+echo " "                                          >> $ANSIBLEHOSTS
+echo "[nginx_lb]"                                 >> $ANSIBLEHOSTS
+echo "nginxlb"                                    >> $ANSIBLEHOSTS
+echo " "                                          >> $ANSIBLEHOSTS
+echo "[nginx_upstream]"                           >> $ANSIBLEHOSTS
+echo "nginx01"                                    >> $ANSIBLEHOSTS
+echo "nginx02"                                    >> $ANSIBLEHOSTS
+echo "nginx03"                                    >> $ANSIBLEHOSTS
+echo " "                                          >> $ANSIBLEHOSTS
 
 
 echo "To use..."
