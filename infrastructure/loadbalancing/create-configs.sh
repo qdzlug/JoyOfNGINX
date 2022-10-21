@@ -4,13 +4,13 @@
 # demo setup. Is not production ready, should not be used in production, etc.
 #
 
-
+BASEDIR=$(pwd)
 TERRAFORM=$(which terraform)
 TERRAFORMARGS="output --json"
 JQ=$(which jq)
-SSHKEY="nginx.pem"
-SSHCONFIG="nginx.ssh.config"
-ANSIBLEHOSTS="nginx.ansible.hosts"
+SSHKEY="$BASEDIR/nginx.pem"
+SSHCONFIG="$BASEDIR/nginx.ssh.config"
+ANSIBLEHOSTS="$BASEDIR/nginx.ansible.hosts"
 
 ## Parse out the IP addresses we need
 PUBLICIP=$($TERRAFORM $TERRAFORMARGS | $JQ '.nginxlb_public_ip_address.value')
@@ -24,7 +24,7 @@ $TERRAFORM show -json | $JQ -r \
 '.values.root_module.resources[].values | select(.private_key_pem)
 |.private_key_pem' > $SSHKEY
 chmod 600 $SSHKEY
-echo "Private key written to $SSHKEY "
+echo "Private key written to $BASEDIR/$SSHKEY "
 
 # Write out an ssh config file
 
