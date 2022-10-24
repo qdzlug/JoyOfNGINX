@@ -34,6 +34,27 @@ This directory contains subdirectories for the example infrastucture.
 This directory contains subdirectories for the various Ansible examples
 that are provided.
 
+#### NGNIX Plus
+Ansible scripts to manage NGINX Plus, the paid version of NGINX by F5.
+
+#### NGNIX OSS
+Ansible scripts to manage NGINX OSS, the OSS version managed by F5.
+
+#### Tailscale
+[Tailscale](https://github.com/tailscale/tailscale) is a software product that
+leverages [wireguard](https://www.wireguard.com/) to provide secure VPN 
+networking. 
+
+Within these examples, Wireguard can be used to securely connect to the nodes
+used for the examples. This can also serve as a proof of concept for securing
+traffic between, say, a front end loadbalancer and the upstreams it is balancing
+across.
+
+This directory contains an ansible deployment file that can be used to install
+Tailscale on your nodes. This requires that you:
+1. Have a Tailscale account.
+2. You have created a non-expiring API token to join your tailscale network.
+
 ## FAQ
 
 #### Terraform has an Ansible provider; why didn't you use that?

@@ -1,4 +1,4 @@
 
-deploy-nginx/nginx.ssh.config
+deployments/nginx.ssh.config
 
-deploy-nginx/files/license/
+deployments/NGINXPlus/files/license/

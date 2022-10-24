@@ -1,0 +1,9 @@
+---
+- name: Upgrade NGINX
+  hosts: all
+  tasks:
+    - name: Upgrade NGINX
+      ansible.builtin.include_role:
+        name: nginxinc.nginx
+      vars:
+        nginx_setup: upgrade
