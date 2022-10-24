@@ -12,19 +12,5 @@
           key: license/nginx-repo.key
         nginx_remove_license: false
         nginx_modules:
-          - auth-spnego
-          - brotli
-          - encrypted-session
-          - geoip
-          - geoip2
-          - headers-more
-          - image-filter
-          - lua
           - njs
-          - opentracing
-          - passenger
-          - perl
           - prometheus
-          - rtmp
-          - subs-filter
-          - xslt

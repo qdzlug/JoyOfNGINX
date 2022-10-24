@@ -41,4 +41,4 @@ This script will provide instructions that will walk you through the process of:
 require that you have ansible installed.
 
 ## Next Steps
-Follow the instructions in the [`deploy-plus`](../../deploy-nginx) directory.
+Follow the instructions in the [`deploy-plus`](../../deployments) directory.
