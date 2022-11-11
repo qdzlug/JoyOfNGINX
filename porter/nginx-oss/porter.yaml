@@ -116,3 +116,18 @@ outputs:
     type: string
     applyTo:
       - install
+  - name: openssh_private_key
+    type: file
+    path: terraform/nginx.pem
+    applyTo:
+      - install
+  - name: nginx_ansible_hosts
+    type: file
+    path: terraform/nginx.ansible.hosts
+    applyTo:
+      - install
+  - name: nginx_ssh_config
+    type: file
+    path: terraform/nginx.ssh.config
+    applyTo:
+      - install
