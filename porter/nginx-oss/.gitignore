@@ -1,0 +1,5 @@
+.cnab/
+# terraform is copied from infrastructure/loadbalancing
+terraform/
+# ansible-playbooks is copied from deployments/NGINXOSS
+ansible-playbooks/
