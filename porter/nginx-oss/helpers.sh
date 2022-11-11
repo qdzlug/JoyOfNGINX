@@ -7,15 +7,13 @@ install() {
   cd terraform
   ./create-configs.sh
   ssh-add ./nginx.pem
-  sleep 4
+  sleep 20
   echo
   echo Ping ansible hosts
   ansible-playbook -i ./nginx.ansible.hosts ./ansible-ping.yaml
-  sleep 4
+  sleep 10
   echo
   echo Deploy Nginx OSS
-  set -x
-  ls -al ../
   ansible-playbook -i ./nginx.ansible.hosts ../ansible-playbooks/NGINXOSS/deploy-oss.yaml
 }
 
