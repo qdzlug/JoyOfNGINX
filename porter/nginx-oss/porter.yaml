@@ -11,7 +11,7 @@ schemaVersion: 1.0.0
 name: nginx-oss
 
 # Version of the bundle. Change this each time you modify a published bundle.
-version: 0.1.1
+version: 0.1.2
 
 # Description of the bundle and what it does.
 description: "Joy Of Nginx OSS Demo"
@@ -27,7 +27,6 @@ dockerfile: template.Dockerfile
 mixins:
   - terraform
   - exec
-  - az
 
 parameters:
   - name: resource_group_location
@@ -55,15 +54,6 @@ credentials:
 
 # Define the steps that should execute when the bundle is installed
 install:
-  - az:
-      description: "Azure CLI login"
-      arguments:
-        - login
-      flags:
-        service-principal:
-        tenant: ${bundle.credentials.azure_tenant_id}
-        username: ${bundle.credentials.azure_client_id}
-        password: ${bundle.credentials.azure_client_secret}
   - terraform:
       description: "Install Azure Infrastructure"
       vars:
