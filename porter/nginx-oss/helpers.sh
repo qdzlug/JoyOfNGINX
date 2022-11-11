@@ -22,7 +22,6 @@ upgrade() {
 }
 
 uninstall() {
-  echo Goodbye World
 }
 
 # Call the requested function and pass the arguments as-is

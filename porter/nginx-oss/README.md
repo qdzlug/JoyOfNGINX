@@ -58,3 +58,10 @@ Get the Ansible inventory file
 ```
 porter installation outputs list nginx-oss -o json |jq -r '.[] | select(.name=="nginx_ansible_hosts")| .value ' > nginx.ansible.hosts
 ```
+
+When your done uninstall to clean everything up
+
+```
+porter installations list
+porter uninstall -c nginx-oss nginx-oss
+```
