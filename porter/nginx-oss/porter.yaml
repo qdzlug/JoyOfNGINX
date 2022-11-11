@@ -11,7 +11,7 @@ schemaVersion: 1.0.0
 name: nginx-oss
 
 # Version of the bundle. Change this each time you modify a published bundle.
-version: 0.1.0
+version: 0.1.1
 
 # Description of the bundle and what it does.
 description: "Joy Of Nginx OSS Demo"
