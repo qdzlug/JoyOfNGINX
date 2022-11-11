@@ -86,11 +86,6 @@ upgrade:
 
 # Define the steps that should execute when the bundle is uninstalled
 uninstall:
-  - exec:
-      description: "Uninstall Hello World"
-      command: ./helpers.sh
-      arguments:
-        - uninstall
   - terraform:
       description: "Uninstall Azure Infrastructure"
 
