@@ -14,6 +14,8 @@ install() {
   sleep 4
   echo
   echo Deploy Nginx OSS
+  set -x
+  ls -al ../
   ansible-playbook -i ./nginx.ansible.hosts ../ansible-playbooks/NGINXOSS/deploy-oss.yaml
 }
 
