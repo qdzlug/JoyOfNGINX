@@ -22,6 +22,7 @@ upgrade() {
 }
 
 uninstall() {
+  echo
 }
 
 # Call the requested function and pass the arguments as-is
