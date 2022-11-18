@@ -3,9 +3,11 @@ name: porter-bundle-publish
 on:
   push:
     branches:
-      - "*"
+      - "**"
     tags:
       - v*
+    paths-ignore:
+      - "**/README.md"
 
 # Set up environment variables needed for the bundle.
 # If these are sensitive, they should be set as secrets in the repository.
@@ -42,6 +44,11 @@ jobs:
             type=ref,event=branch
             type=ref,event=pr
             type=semver,pattern=v{{version}}
+      - name: get porter bundle version
+        id: bundleVersion
+        uses: mikefarah/yq@v4.9.6
+        with:
+          cmd: yq e '.version' porter/nginx-oss/porter.yaml
       - name: Docker Login
         uses: docker/login-action@v2
         with:
@@ -50,6 +57,22 @@ jobs:
           password: ${{ secrets.CR_TOKEN }}
       # Run publish.
       # If any of the porter commands above fail, the workflow will stop, so your bundle will only be published if it works properly.
-      - name: Porter Publish
+      - name: Porter Publish Tag
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         run: |
           make publish-porter-nginx-oss BUNDLE_VERSION=${{ steps.meta.outputs.version }}
+          make update-porter-yaml-version update-porter-docs BUNDLE_VERSION=${{ steps.meta.outputs.version }}
+      - name: Porter Publish Branch
+        if: ${{ startsWith(github.ref, 'refs/heads/') }}
+        run: |
+          make publish-porter-nginx-oss BUNDLE_VERSION=${{ steps.bundleVersion.outputs.result }}-${{ steps.meta.outputs.version }}
+          make update-porter-yaml-version update-porter-docs BUNDLE_VERSION=${{ steps.bundleVersion.outputs.result }}-${{ steps.meta.outputs.version }}
+      - name: Update resources
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        uses: test-room-7/action-update-file@v1
+        with:
+          file-path: |
+            porter/nginx-oss/README.md
+            porter/nginx-oss/porter.yaml
+          commit-msg: "[no ci] update cnab bundle version"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
