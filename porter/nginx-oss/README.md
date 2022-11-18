@@ -31,7 +31,7 @@ You can run `porter credentials list` to confirm creation.
 Next, just reference the bundle tag and credential set to install.
 
 ```
-porter install -c nginx-oss -r ghcr.io/bdegeeter/joyofnginx/nginx-oss:v0.1.2-chore-update-ci
+porter install -c nginx-oss -r ghcr.io/bdegeeter/joyofnginx/nginx-oss:v0.1.2
 ```
 
 After installation you can access the outputs and try things out.

@@ -11,10 +11,10 @@ schemaVersion: 1.0.0
 name: nginx-oss
 
 # Version of the bundle. Change this each time you modify a published bundle.
-version: 0.1.2-chore-update-ci
+version: 0.1.2
 
 # Description of the bundle and what it does.
-description: "Joy Of Nginx OSS Demo"
+description: "Azure Joy Of Nginx OSS Demo with SSH and Ansible access"
 
 # Registry where the bundle is published to by default
 registry: "ghcr.io/bdegeeter/joyofnginx"
@@ -69,7 +69,7 @@ install:
 # Define the steps that should execute when the bundle is upgraded
 upgrade:
   - exec:
-      description: "World 2.0"
+      description: "TODO: Support upgrade"
       command: ./helpers.sh
       arguments:
         - upgrade
