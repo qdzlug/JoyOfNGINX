@@ -1,0 +1,21 @@
+---
+
+- hosts: all
+
+  tasks:
+  - name: Download the nginx-agent installer
+    shell:  curl -k https://NIM_HOST/install/nginx-agent -O
+    args:
+      creates: nginx-agent
+
+  - name: Make the nginx-agent installer executable
+    shell: chmod 755 nginx-agent
+
+  - name: Run the installer
+    shell: /home/ubuntu/nginx-agent -g GROUP_NAME
+
+  - name: Enable and start the service
+    ansible.builtin.service:
+      name: nginx-agent
+      state: started
+      enabled: yes
