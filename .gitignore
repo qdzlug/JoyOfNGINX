@@ -2,3 +2,5 @@
 deployments/nginx.ssh.config
 
 deployments/NGINXPlus/files/license/
+!/docker/Plus/nginx.crt
+!/docker/Plus/nginx.key
