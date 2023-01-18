@@ -1,0 +1,29 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: Install NGINX modules
+      ansible.builtin.include_role:
+        name: nginxinc.nginx
+      vars:
+        nginx_modules:
+          - brotli
+          - geoip
+          - image-filter
+          - auth-spnego
+          - brotli
+          - encrypted-session
+          - geoip
+          - geoip2
+          - headers-more
+          - image-filter
+          - lua
+          - njs
+          - opentracing
+          - passenger
+          - perl
+          - prometheus
+          - rtmp
+          - subs-filter
+          - xslt
+          - split-traffic

@@ -1,0 +1,12 @@
+[all:vars]
+ansible_user=ubuntu
+ansible_become=yes
+ansible_become_method=sudo
+ansible_python_interpreter=/usr/bin/python3
+ 
+[nginx_main]
+192.168.216.83
+192.168.216.84
+192.168.216.86
+192.168.216.85
+ 
