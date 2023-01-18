@@ -1,5 +1,9 @@
 version: '3.8'
 services:
+
+  # 
+  # Frontend NGINX Deployment to serve as a load balancer
+  # 
   frontend:
     image: nginx
     container_name: frontend
@@ -11,6 +15,15 @@ services:
       - ./frontend/config/conf.d:/etc/nginx/conf.d
     ports:
       - 80:80
+    networks:
+      - backend
+      - frontend
+  
+  #
+  # The three backends are setup individually in order to allow
+  # the configurations to be changed as needed for different 
+  # demos.
+  #
   backend01:
     image: nginx
     container_name: backend01
@@ -21,6 +34,9 @@ services:
       - ./backend/config/nginx.conf:/etc/nginx/nginx.conf
       - ./backend/www:/usr/share/nginx/html
       - ./backend/config/conf.d:/etc/nginx/conf.d
+    networks:
+      - backend
+
   backend02:
     image: nginx
     container_name: backend02
@@ -31,6 +47,9 @@ services:
       - ./backend/config/nginx.conf:/etc/nginx/nginx.conf
       - ./backend/www:/usr/share/nginx/html
       - ./backend/config/conf.d:/etc/nginx/conf.d
+    networks:
+      - backend
+
   backend03:
     image: nginx
     container_name: backend03
@@ -41,3 +60,14 @@ services:
       - ./backend/config/nginx.conf:/etc/nginx/nginx.conf
       - ./backend/www:/usr/share/nginx/html
       - ./backend/config/conf.d:/etc/nginx/conf.d
+    networks:
+      - backend
+
+#
+# The loadbalancer will be connected to both the frontend and
+# backend networks, while the backends are only connected to 
+# the backend network.
+#
+networks:
+  frontend:
+  backend:
