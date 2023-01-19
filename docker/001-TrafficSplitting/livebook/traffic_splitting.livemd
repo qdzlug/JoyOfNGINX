@@ -1,0 +1,244 @@
+# Traffic Splitting Demo
+
+## Setup
+
+The following installs libraries we'll need to show the data. It will take a bit to run the first time, but subsequent runs should be faster.
+
+For eact cell, click "evaluate" which will appear as you hover over the cell on the upper left.  Wait until the evaluation has completed before moving on to the next cell.
+
+```elixir
+Mix.install([
+  {:smart_cell_command, github: "kentaro/smart_cell_command"},
+  {:plug_cowboy, "~> 2.6"},
+  {:jason, "~> 1.4"},
+  {:vega_lite, "~> 0.1"},
+  {:kino_vega_lite, "~> 0.1"}
+])
+```
+
+<!-- livebook:{"attrs":{"command":"apt-get update"},"chunks":null,"kind":"Elixir.SmartCellCommand","livebook_object":"smart_cell"} -->
+
+```elixir
+"apt-get update"
+|> String.split("\n")
+|> Enum.map(fn line ->
+  [cmd | args] = line |> String.split(" ")
+  {result, _} = System.cmd(cmd, args)
+  result |> String.trim()
+end)
+|> Enum.join("\n\n")
+|> IO.puts()
+```
+
+<!-- livebook:{"attrs":{"command":"apt-get install -y curl"},"chunks":null,"kind":"Elixir.SmartCellCommand","livebook_object":"smart_cell"} -->
+
+```elixir
+"apt-get install -y curl"
+|> String.split("\n")
+|> Enum.map(fn line ->
+  [cmd | args] = line |> String.split(" ")
+  {result, _} = System.cmd(cmd, args)
+  result |> String.trim()
+end)
+|> Enum.join("\n\n")
+|> IO.puts()
+```
+
+## Data Tracking Setup
+
+Next we set up two things:
+
+1. An in-memory store to keep track of how many requests are routed to each backend
+2. A simple UDP server to consume output from a logspout container that will collect logs from the demo containers.
+
+You don't need to understand any of this code.
+
+```elixir
+defmodule Stats do
+  use GenServer
+
+  ## Missing Client API - will add this later
+
+  ## Defining GenServer Callbacks
+
+  @impl true
+  def init(:ok) do
+    {:ok, %{}}
+  end
+
+  @impl true
+  def handle_call(:for_chart, _from, stats) do
+    data =
+      Map.keys(stats)
+      |> Enum.map(fn key ->
+        %{x: key, y: Map.get(stats, key)}
+      end)
+
+    {:reply, data, stats}
+  end
+
+  @impl true
+  def handle_call(:raw_data, _from, stats) do
+    {:reply, stats, stats}
+  end
+
+  @impl true
+  def handle_cast({:increment, ip}, stats) do
+    {_val, updated_stats} =
+      Map.get_and_update(stats, ip, fn
+        nil ->
+          {nil, 1}
+
+        current_value ->
+          {current_value, current_value + 1}
+      end)
+
+    {:noreply, updated_stats}
+  end
+end
+
+GenServer.start_link(Stats, :ok, name: Stats)
+```
+
+```elixir
+defmodule UDPServer do
+  # Our module is going to use the DSL (Domain Specific Language) for Gen(eric) Servers
+  use GenServer
+
+  # We need a factory method to create our server process
+  # it takes a single parameter `port` which defaults to `2052`
+  # This runs in the caller's context
+  def start_link(port \\ 2052) do
+    # Start 'er up
+    GenServer.start_link(__MODULE__, port)
+  end
+
+  # Initialization that runs in the server context (inside the server process right after it boots)
+  def init(port) do
+    # Use erlang's `gen_udp` module to open a socket
+    # With options:
+    #   - binary: request that data be returned as a `String`
+    #   - active: gen_udp will handle data reception, and send us a message `{:udp, socket, address, port, data}` when new data arrives on the socket
+    # Returns: {:ok, socket}
+    :gen_udp.open(port, [:binary, active: true])
+  end
+
+  # define a callback handler for when gen_udp sends us a UDP packet
+  def handle_info({:udp, _socket, _address, _port, data}, socket) do
+    # punt the data to a new function that will do pattern matching
+    handle_packet(data, socket)
+  end
+
+  # pattern match the "quit" message
+  defp handle_packet("quit\n", socket) do
+    IO.puts("Received: quit")
+
+    # close the socket
+    :gen_udp.close(socket)
+
+    # GenServer will understand this to mean we want to stop the server
+    # action: :stop
+    # reason: :normal
+    # new_state: nil, it doesn't matter since we're shutting down :(
+    {:stop, :normal, nil}
+  end
+
+  defp handle_packet(<<_preamble::bytes-size(55), msg::binary>> = raw, socket) do
+    case Jason.decode(msg) do
+      {:ok, %{"upstream_addr" => upstream_addr}} ->
+        GenServer.cast(Stats, {:increment, upstream_addr})
+
+      _other ->
+        :ok
+    end
+
+    {:noreply, socket}
+  end
+
+  # fallback pattern match to handle all other (non-"quit") messages
+  defp handle_packet(data, socket) do
+    # print the message
+    IO.puts("Received: #{String.trim(data)}")
+
+    # IRL: do something more interesting...
+
+    # GenServer will understand this to mean "continue waiting for the next message"
+    # parameters:
+    # :noreply - no reply is needed
+    # new_state: keep the socket as the current state
+    {:noreply, socket}
+  end
+end
+
+# For extra protection, start a supervisor that will start the UDPServer
+# The supervisor's job is to monitor the UDPServer
+# If it crashes it will auto restart, fault tolerance in 1 line of code!!!
+{:ok, _pid} = Supervisor.start_link([{UDPServer, 514}], strategy: :one_for_one)
+```
+
+## Visualize Traffic Split
+
+The following cell will send a request to our NGINX frontend. Run this many times, then scroll down to the visualizations to see how traffic is being distributed among the backends
+
+<!-- livebook:{"attrs":{"command":"curl -s -o /dev/null frontend:80"},"chunks":null,"kind":"Elixir.SmartCellCommand","livebook_object":"smart_cell"} -->
+
+```elixir
+"curl -s -o /dev/null frontend:80"
+|> String.split("\n")
+|> Enum.map(fn line ->
+  [cmd | args] = line |> String.split(" ")
+  {result, _} = System.cmd(cmd, args)
+  result |> String.trim()
+end)
+|> Enum.join("\n\n")
+|> IO.puts()
+```
+
+### View as Flowchart
+
+````elixir
+data = GenServer.call(Stats, :for_chart)
+
+text =
+  Enum.reduce(data, "", fn %{x: backend_name, y: call_count}, acc ->
+    acc <> "FRONTEND-- #{call_count} -->#{backend_name};\n"
+  end)
+
+Kino.Markdown.new(~s"""
+```mermaid
+graph LR;
+    FRONTEND;
+    #{text}
+```
+""")
+````
+
+### View as Bar Chart
+
+```elixir
+alias VegaLite, as: Vl
+data = GenServer.call(Stats, :for_chart)
+
+widget =
+  Vl.new(width: 400, height: 300)
+  |> Vl.data_from_values(data)
+  |> Vl.mark(:bar)
+  |> Vl.encode_field(:x, "x", type: :nominal, axis: [label_angle: 0])
+  |> Vl.encode_field(:y, "y", type: :quantitative)
+```
+
+## Clean Up
+
+<!-- livebook:{"attrs":{"command":"docker-compose -f /Users/j.evans/code/JoyOfNGINX/docker/001-TrafficSplitting/docker-compose.yml down"},"chunks":null,"kind":"Elixir.SmartCellCommand","livebook_object":"smart_cell"} -->
+
+```elixir
+"docker-compose -f /Users/j.evans/code/JoyOfNGINX/docker/001-TrafficSplitting/docker-compose.yml down"
+|> String.split("\n")
+|> Enum.map(fn line ->
+  [cmd | args] = line |> String.split(" ")
+  {result, _} = System.cmd(cmd, args)
+  result |> String.trim()
+end)
+|> Enum.join("\n\n")
+|> IO.puts()
+```

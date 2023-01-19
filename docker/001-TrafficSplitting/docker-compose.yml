@@ -17,6 +17,7 @@ services:
     hostname: backend01
     environment:
       - TZ="America/Denver"
+      - LOGSPOUT=ignore
     volumes:
       - ./backend/config/nginx.conf:/etc/nginx/nginx.conf
       - ./backend/www:/usr/share/nginx/html
@@ -27,6 +28,7 @@ services:
     hostname: backend02
     environment:
       - TZ="America/Denver"
+      - LOGSPOUT=ignore
     volumes:
       - ./backend/config/nginx.conf:/etc/nginx/nginx.conf
       - ./backend/www:/usr/share/nginx/html
@@ -37,7 +39,26 @@ services:
     hostname: backend03
     environment:
       - TZ="America/Denver"
+      - LOGSPOUT=ignore
     volumes:
       - ./backend/config/nginx.conf:/etc/nginx/nginx.conf
       - ./backend/www:/usr/share/nginx/html
       - ./backend/config/conf.d:/etc/nginx/conf.d
+  logspout:
+      image: gliderlabs/logspout
+      command:
+          - "syslog+udp://livebook:514"
+      ports:
+          - "8000:80"
+      volumes:
+          - "/var/run/docker.sock:/var/run/docker.sock"
+  livebook:
+    image: livebook/livebook
+    environment:
+      - LIVEBOOK_TOKEN_ENABLED=false
+      - LOGSPOUT=ignore
+    ports:
+      - 8080:8080
+      - 8081:8081
+    volumes:
+      - ./livebook:/data
