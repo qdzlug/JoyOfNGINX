@@ -63,6 +63,8 @@ services:
       - ./backend/config/nginx.conf:/etc/nginx/nginx.conf
       - ./backend/www:/usr/share/nginx/html
       - ./backend/config/conf.d:/etc/nginx/conf.d
+    networks:
+      - backend
   
   logspout:
       image: gliderlabs/logspout
@@ -85,6 +87,7 @@ services:
       - ./livebook:/data
     networks:
       - backend
+      - frontend
 
 #
 # The loadbalancer will be connected to both the frontend and
