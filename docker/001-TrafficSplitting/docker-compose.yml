@@ -73,6 +73,8 @@ services:
     ports:
         - "8000:80"
     volumes:
+        # This is generally not a good idea security-wise
+        # but allows smooth operation of the demo
         - "/var/run/docker.sock:/var/run/docker.sock"
     networks:
       - backend
@@ -89,6 +91,8 @@ services:
     volumes:
       - ./livebook:/data
       - ./frontend/config/nginx.conf:/etc/nginx/nginx.conf
+      # This is generally not a good idea security-wise
+      # but allows smooth operation of the demo
       - "/var/run/docker.sock:/var/run/docker.sock"
     networks:
       - backend

@@ -6,7 +6,6 @@ defmodule NginxLivebookUtils.UdpLogParser do
   ## Client
   def start_link(opts) do
     port  = Keyword.get(opts, :port, 514)
-    IO.inspect(port, label: :port_in_start_link)
     GenServer.start_link(__MODULE__, port, name: __MODULE__)
   end
 
@@ -18,8 +17,7 @@ defmodule NginxLivebookUtils.UdpLogParser do
 
   @impl true
   def init(port) do
-    IO.inspect(port, label: :da_port)
-    {:ok, socket} = :gen_udp.open(port, [:binary, active: true]) |> IO.inspect(label: :gen_udp)
+    {:ok, socket} = :gen_udp.open(port, [:binary, active: true])
     {:ok, %{handler_fn: nil, socket: socket}}
   end
 

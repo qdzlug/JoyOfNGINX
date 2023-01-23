@@ -51,11 +51,15 @@ defmodule NginxLivebookUtils.TrafficCounter do
   # Raw data output
   @impl true
   def handle_call(:raw, _from, %{ id_mappings: id_mappings, stats: stats } = state) do
-    output = id_mappings |> Enum.reduce(fn {id, mapping}, acc ->
-      stat = Map.get(stats, id, 0)
-      Map.put(acc, mapping, stat)
-    end)
-    |> Map.merge(stats)
+    output = if Enum.empty?(id_mappings) do
+      stats
+    else
+      id_mappings
+      |> Enum.reduce(%{}, fn {id, mapping}, acc ->
+        stat = Map.get(stats, id, 0)
+        Map.put(acc, mapping, stat)
+      end)
+    end
 
     {:reply, output, state}
   end
@@ -77,8 +81,9 @@ defmodule NginxLivebookUtils.TrafficCounter do
 
   # Clear the counter
   @impl true
-  def handle_cast(:clear, _stats) do
-    {:noreply, %{}}
+  def handle_cast(:clear, state) do
+    updated_state = Map.put(state, :stats, %{})
+    {:noreply, updated_state}
   end
 
   @impl true
