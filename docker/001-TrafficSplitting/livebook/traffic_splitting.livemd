@@ -1,19 +1,79 @@
 # Traffic Splitting Demo
 
+## Scenario
+
+This notebook will help us explore the NGINX [ngx_http_split_clients_module](https://nginx.org/en/docs/http/ngx_http_split_clients_module.html) to understand how its applications and configuration options.
+
+Imagine a situation where we have a very old application that sits outside our main architecture which we are going to try to replace with a totally new application that has been rewritten to our current standards but has the same interface:
+
+<!-- livebook:{"break_markdown":true} -->
+
+<!-- Learn more at https://mermaid-js.github.io/mermaid -->
+
+```mermaid
+graph TD;
+  subgraph legacy infrastructure
+    FRONTEND
+    backend01
+    backend02
+  end
+  subgraph new infrastructure
+    backend03-canary
+    DOWNSTREAM_SERVICE-->FRONTEND
+  end
+
+  FRONTEND-- * -->backend01;
+  FRONTEND-- * -->backend02;
+  FRONTEND-- 20% -->backend03-canary;
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+We'd like to start routing a small amount of traffic to this new service as we monitor it carefully for scaling issues and bugs.
+
+The easiest method is to leverage the existing NGINX reverse proxy that sits in front of the legacy service.
+
+### Next Steps
+
+1. Run the cells one by one in the "Setup" section. These just set up behind the scenes code for tracking request distribution
+2. Use the cells in the "Visualizing Traffic Flow" section to run requests and see how they are distributed.
+
 ## Setup
 
 The following installs libraries we'll need to show the data. It will take a bit to run the first time, but subsequent runs should be faster.
 
-For eact cell, click "evaluate" which will appear as you hover over the cell on the upper left.  Wait until the evaluation has completed before moving on to the next cell.
+For each cell, click "evaluate" which will appear as you hover over the cell on the upper left.  Wait until the evaluation has completed before moving on to the next cell.
 
 ```elixir
 Mix.install([
-  {:smart_cell_command, github: "kentaro/smart_cell_command"},
-  {:plug_cowboy, "~> 2.6"},
+  {:smart_cell_command, path: "/data/smart_cell_command"},
   {:jason, "~> 1.4"},
   {:vega_lite, "~> 0.1"},
-  {:kino_vega_lite, "~> 0.1"}
+  {:kino_vega_lite, "~> 0.1"},
+  {:dns, "~> 2.4"},
+  {:smart_cell_file_editor, path: "/data/smart_cell_file_editor"}
 ])
+```
+
+<!-- livebook:{"attrs":{"filepath":"/etc/nginx/nginx.conf","file_content":"\nuser  nginx;\nworker_processes  auto;\n\nerror_log  /var/log/nginx/error.log notice;\npid        /var/run/nginx.pid;\n\n\nevents {\n    worker_connections  1024;\n}\n\n\nhttp {\n    include       /etc/nginx/mime.types;\n    default_type  application/octet-stream;\n\n    log_format main3 escape=json '{'\n    '\"remote_addr\":\"$remote_addr\",'\n    '\"time_iso8601\":\"$time_iso8601\",'\n    '\"request_uri\":\"$request_uri\",'\n    '\"request_length\":\"$request_length\",'\n    '\"request_method\":\"$request_method\",'\n    '\"request_time\":\"$request_time\",'\n    '\"server_port\":\"$server_port\",'\n    '\"server_protocol\":\"$server_protocol\",'\n    '\"ssl_protocol\":\"$ssl_protocol\",'\n    '\"status\":\"$status\",'\n    '\"bytes_sent\":\"$bytes_sent\",'\n    '\"http_referer\":\"$http_referer\",'\n    '\"http_user_agent\":\"$http_user_agent\",'\n    '\"upstream_response_time\":\"$upstream_response_time\",'\n    '\"upstream_addr\":\"$upstream_addr\",'\n    '\"upstream_connect_time\":\"$upstream_connect_time\",'\n    '\"upstream_cache_status\":\"$upstream_cache_status\",'\n    '\"tcpinfo_rtt\":\"$tcpinfo_rtt\",'\n    '\"tcpinfo_rttvar\":\"$tcpinfo_rttvar\"'\n    '}';\n\n\n\n    access_log  /var/log/nginx/access.log  main3;\n\n    sendfile        on;\n    #tcp_nopush     on;\n\n    keepalive_timeout  65;\n\n\n    upstream backend_prod {\n        zone backend_prod 64k;\n        server backend01:80;\n        server backend02:80;\n    }\n\n    upstream backend_preprod {\n        zone backend_preprod 64k;\n        server backend03:80;\n    }\n\n    split_clients \"${request_id}\" $backend_key {\n        80.0%   \"backend_preprod\";\n        *       \"backend_prod\";\n    }\n\n    server {\n        listen 80 default_server;\n        server_name $hostname;\n\n        location / {\n        proxy_set_header Dog-Name \"kishi\";\n        proxy_pass    http://$backend_key;\n        }\n}\n\n}\n"},"chunks":null,"kind":"Elixir.SmartCellFileEditor","livebook_object":"smart_cell"} -->
+
+```elixir
+"\nuser  nginx;\nworker_processes  auto;\n\nerror_log  /var/log/nginx/error.log notice;\npid        /var/run/nginx.pid;\n\n\nevents {\n    worker_connections  1024;\n}\n\n\nhttp {\n    include       /etc/nginx/mime.types;\n    default_type  application/octet-stream;\n\n    log_format main3 escape=json '{'\n    '\"remote_addr\":\"$remote_addr\",'\n    '\"time_iso8601\":\"$time_iso8601\",'\n    '\"request_uri\":\"$request_uri\",'\n    '\"request_length\":\"$request_length\",'\n    '\"request_method\":\"$request_method\",'\n    '\"request_time\":\"$request_time\",'\n    '\"server_port\":\"$server_port\",'\n    '\"server_protocol\":\"$server_protocol\",'\n    '\"ssl_protocol\":\"$ssl_protocol\",'\n    '\"status\":\"$status\",'\n    '\"bytes_sent\":\"$bytes_sent\",'\n    '\"http_referer\":\"$http_referer\",'\n    '\"http_user_agent\":\"$http_user_agent\",'\n    '\"upstream_response_time\":\"$upstream_response_time\",'\n    '\"upstream_addr\":\"$upstream_addr\",'\n    '\"upstream_connect_time\":\"$upstream_connect_time\",'\n    '\"upstream_cache_status\":\"$upstream_cache_status\",'\n    '\"tcpinfo_rtt\":\"$tcpinfo_rtt\",'\n    '\"tcpinfo_rttvar\":\"$tcpinfo_rttvar\"'\n    '}';\n\n\n\n    access_log  /var/log/nginx/access.log  main3;\n\n    sendfile        on;\n    #tcp_nopush     on;\n\n    keepalive_timeout  65;\n\n\n    upstream backend_prod {\n        zone backend_prod 64k;\n        server backend01:80;\n        server backend02:80;\n    }\n\n    upstream backend_preprod {\n        zone backend_preprod 64k;\n        server backend03:80;\n    }\n\n    split_clients \"${request_id}\" $backend_key {\n        80.0%   \"backend_preprod\";\n        *       \"backend_prod\";\n    }\n\n    server {\n        listen 80 default_server;\n        server_name $hostname;\n\n        location / {\n        proxy_set_header Dog-Name \"kishi\";\n        proxy_pass    http://$backend_key;\n        }\n}\n\n}\n"
+|> IO.puts()
+```
+
+<!-- livebook:{"attrs":{"command":"curl -X POST --unix-socket /var/run/docker.sock  http:/v1.24/containers/frontend/restart"},"chunks":null,"kind":"Elixir.SmartCellCommand","livebook_object":"smart_cell"} -->
+
+```elixir
+"curl -X POST --unix-socket /var/run/docker.sock  http:/v1.24/containers/frontend/restart"
+|> String.split("\n")
+|> Enum.map(fn line ->
+  [cmd | args] = line |> String.split(" ")
+  {result, _} = System.cmd(cmd, args)
+  result |> String.trim()
+end)
+|> Enum.join("\n\n")
+|> IO.puts()
 ```
 
 <!-- livebook:{"attrs":{"command":"apt-get update"},"chunks":null,"kind":"Elixir.SmartCellCommand","livebook_object":"smart_cell"} -->
@@ -54,18 +114,25 @@ Next we set up two things:
 You don't need to understand any of this code.
 
 ```elixir
+# For easy modification of the Genserver, make sure it's killed before the cell is reevaluated
+case Process.whereis(Stats) do
+  pid when is_pid(pid) ->
+    Process.exit(pid, :kill)
+
+  _ ->
+    :ok
+end
+
 defmodule Stats do
   use GenServer
-
-  ## Missing Client API - will add this later
-
-  ## Defining GenServer Callbacks
 
   @impl true
   def init(:ok) do
     {:ok, %{}}
   end
 
+  # Get the request counts formatted for charting
+  # [{x: "192.168.0.1", y: 23}, ...]
   @impl true
   def handle_call(:for_chart, _from, stats) do
     data =
@@ -77,11 +144,13 @@ defmodule Stats do
     {:reply, data, stats}
   end
 
+  # Raw data output
   @impl true
-  def handle_call(:raw_data, _from, stats) do
+  def handle_call(:raw, _from, stats) do
     {:reply, stats, stats}
   end
 
+  # Increments the count for one IP address
   @impl true
   def handle_cast({:increment, ip}, stats) do
     {_val, updated_stats} =
@@ -95,55 +164,62 @@ defmodule Stats do
 
     {:noreply, updated_stats}
   end
+
+  # Clear the counter
+  @impl true
+  def handle_cast(:clear, _stats) do
+    {:noreply, %{}}
+  end
 end
 
-GenServer.start_link(Stats, :ok, name: Stats)
+GenServer.start(Stats, :ok, name: Stats)
 ```
 
 ```elixir
+# For easy modification of the Genserver, make sure it's killed before the cell is reevaluated
+case Process.whereis(UDPServer) do
+  pid when is_pid(pid) ->
+    Process.exit(pid, :kill)
+
+  _ ->
+    :ok
+end
+
+# The following code is referenced from:
+# https://gist.github.com/joshnuss/08603e11615ee0de65724be4d63354755
 defmodule UDPServer do
-  # Our module is going to use the DSL (Domain Specific Language) for Gen(eric) Servers
   use GenServer
 
-  # We need a factory method to create our server process
-  # it takes a single parameter `port` which defaults to `2052`
-  # This runs in the caller's context
+  def child_spec(opts) do
+    %{
+      id: UDPServer,
+      start: {__MODULE__, :start_link, [opts]},
+      shutdown: 5_000,
+      restart: :transient,
+      type: :worker
+    }
+  end
+
   def start_link(port \\ 2052) do
-    # Start 'er up
     GenServer.start_link(__MODULE__, port)
   end
 
-  # Initialization that runs in the server context (inside the server process right after it boots)
   def init(port) do
-    # Use erlang's `gen_udp` module to open a socket
-    # With options:
-    #   - binary: request that data be returned as a `String`
-    #   - active: gen_udp will handle data reception, and send us a message `{:udp, socket, address, port, data}` when new data arrives on the socket
-    # Returns: {:ok, socket}
     :gen_udp.open(port, [:binary, active: true])
   end
 
-  # define a callback handler for when gen_udp sends us a UDP packet
   def handle_info({:udp, _socket, _address, _port, data}, socket) do
-    # punt the data to a new function that will do pattern matching
     handle_packet(data, socket)
   end
 
-  # pattern match the "quit" message
   defp handle_packet("quit\n", socket) do
-    IO.puts("Received: quit")
-
-    # close the socket
+    IO.puts("Received: quit from udp")
     :gen_udp.close(socket)
-
-    # GenServer will understand this to mean we want to stop the server
-    # action: :stop
-    # reason: :normal
-    # new_state: nil, it doesn't matter since we're shutting down :(
     {:stop, :normal, nil}
   end
 
-  defp handle_packet(<<_preamble::bytes-size(55), msg::binary>> = raw, socket) do
+  # Handle the pertinent log entry from the frontend
+  defp handle_packet(<<_preamble::bytes-size(55), msg::binary>>, socket) do
     case Jason.decode(msg) do
       {:ok, %{"upstream_addr" => upstream_addr}} ->
         GenServer.cast(Stats, {:increment, upstream_addr})
@@ -156,24 +232,32 @@ defmodule UDPServer do
   end
 
   # fallback pattern match to handle all other (non-"quit") messages
-  defp handle_packet(data, socket) do
-    # print the message
-    IO.puts("Received: #{String.trim(data)}")
-
-    # IRL: do something more interesting...
-
-    # GenServer will understand this to mean "continue waiting for the next message"
-    # parameters:
-    # :noreply - no reply is needed
-    # new_state: keep the socket as the current state
+  defp handle_packet(_data, socket) do
     {:noreply, socket}
   end
 end
 
-# For extra protection, start a supervisor that will start the UDPServer
-# The supervisor's job is to monitor the UDPServer
-# If it crashes it will auto restart, fault tolerance in 1 line of code!!!
-{:ok, _pid} = Supervisor.start_link([{UDPServer, 514}], strategy: :one_for_one)
+GenServer.start(UDPServer, 514, name: UDPServer)
+```
+
+The following cell determines which IP addresses correspond to our named backends in order to make the diagrams easier to read.
+
+```elixir
+ip_to_name_mapping =
+  ["backend01", "backend02", "backend03"]
+  |> Enum.reduce(%{}, fn be, acc ->
+    case DNS.resolve(be) do
+      {:ok, [ip]} ->
+        upstream_ip =
+          Tuple.to_list(ip)
+          |> Enum.join(".")
+
+        Map.put(acc, "#{upstream_ip}:80", be)
+
+      _err ->
+        acc
+    end
+  end)
 ```
 
 ## Visualize Traffic Split
@@ -197,11 +281,18 @@ end)
 ### View as Flowchart
 
 ````elixir
-data = GenServer.call(Stats, :for_chart)
+data = GenServer.call(Stats, :raw)
 
 text =
-  Enum.reduce(data, "", fn %{x: backend_name, y: call_count}, acc ->
-    acc <> "FRONTEND-- #{call_count} -->#{backend_name};\n"
+  ip_to_name_mapping
+  |> Enum.reduce("", fn {ip, backend_name}, acc ->
+    case Map.get(data, ip) do
+      nil ->
+        acc <> "FRONTEND-- 0 -->#{backend_name};\n"
+
+      call_count ->
+        acc <> "FRONTEND-- #{call_count} -->#{backend_name};\n"
+    end
   end)
 
 Kino.Markdown.new(~s"""
@@ -217,7 +308,13 @@ graph LR;
 
 ```elixir
 alias VegaLite, as: Vl
-data = GenServer.call(Stats, :for_chart)
+raw_data = GenServer.call(Stats, :raw)
+
+data =
+  ip_to_name_mapping
+  |> Enum.map(fn {ip, name} ->
+    %{x: name, y: Map.get(raw_data, ip, 0)}
+  end)
 
 widget =
   Vl.new(width: 400, height: 300)
@@ -227,18 +324,15 @@ widget =
   |> Vl.encode_field(:y, "y", type: :quantitative)
 ```
 
-## Clean Up
-
-<!-- livebook:{"attrs":{"command":"docker-compose -f /Users/j.evans/code/JoyOfNGINX/docker/001-TrafficSplitting/docker-compose.yml down"},"chunks":null,"kind":"Elixir.SmartCellCommand","livebook_object":"smart_cell"} -->
+<!-- livebook:{"attrs":{"filepath":"/etc/nginx/nginx.conf","file_content":"\nuser  nginx;\nworker_processes  auto;\n\nerror_log  /var/log/nginx/error.log notice;\npid        /var/run/nginx.pid;\n\n\nevents {\n    worker_connections  1024;\n}\n\n\nhttp {\n    include       /etc/nginx/mime.types;\n    default_type  application/octet-stream;\n\n    log_format main3 escape=json '{'\n    '\"remote_addr\":\"$remote_addr\",'\n    '\"time_iso8601\":\"$time_iso8601\",'\n    '\"request_uri\":\"$request_uri\",'\n    '\"request_length\":\"$request_length\",'\n    '\"request_method\":\"$request_method\",'\n    '\"request_time\":\"$request_time\",'\n    '\"server_port\":\"$server_port\",'\n    '\"server_protocol\":\"$server_protocol\",'\n    '\"ssl_protocol\":\"$ssl_protocol\",'\n    '\"status\":\"$status\",'\n    '\"bytes_sent\":\"$bytes_sent\",'\n    '\"http_referer\":\"$http_referer\",'\n    '\"http_user_agent\":\"$http_user_agent\",'\n    '\"upstream_response_time\":\"$upstream_response_time\",'\n    '\"upstream_addr\":\"$upstream_addr\",'\n    '\"upstream_connect_time\":\"$upstream_connect_time\",'\n    '\"upstream_cache_status\":\"$upstream_cache_status\",'\n    '\"tcpinfo_rtt\":\"$tcpinfo_rtt\",'\n    '\"tcpinfo_rttvar\":\"$tcpinfo_rttvar\"'\n    '}';\n\n\n\n    access_log  /var/log/nginx/access.log  main3;\n\n    sendfile        on;\n    #tcp_nopush     on;\n\n    keepalive_timeout  65;\n\n\n    upstream backend_prod {\n        zone backend_prod 64k;\n        server backend01:80;\n        server backend02:80;\n    }\n\n    upstream backend_preprod {\n        zone backend_preprod 64k;\n        server backend03:80;\n    }\n\n    split_clients \"${time_iso8601}\" $backend_key {\n        20.0%   \"backend_preprod\";\n        *       \"backend_prod\";\n    }\n\n    server {\n        listen 80 default_server;\n        server_name $hostname;\n\n        location / {\n        proxy_set_header Dog-Name \"kishi\";\n        proxy_pass    http://$backend_key;\n        }\n}\n\n}\n"},"chunks":null,"kind":"Elixir.SmartCellFileEditor","livebook_object":"smart_cell"} -->
 
 ```elixir
-"docker-compose -f /Users/j.evans/code/JoyOfNGINX/docker/001-TrafficSplitting/docker-compose.yml down"
-|> String.split("\n")
-|> Enum.map(fn line ->
-  [cmd | args] = line |> String.split(" ")
-  {result, _} = System.cmd(cmd, args)
-  result |> String.trim()
-end)
-|> Enum.join("\n\n")
+"\nuser  nginx;\nworker_processes  auto;\n\nerror_log  /var/log/nginx/error.log notice;\npid        /var/run/nginx.pid;\n\n\nevents {\n    worker_connections  1024;\n}\n\n\nhttp {\n    include       /etc/nginx/mime.types;\n    default_type  application/octet-stream;\n\n    log_format main3 escape=json '{'\n    '\"remote_addr\":\"$remote_addr\",'\n    '\"time_iso8601\":\"$time_iso8601\",'\n    '\"request_uri\":\"$request_uri\",'\n    '\"request_length\":\"$request_length\",'\n    '\"request_method\":\"$request_method\",'\n    '\"request_time\":\"$request_time\",'\n    '\"server_port\":\"$server_port\",'\n    '\"server_protocol\":\"$server_protocol\",'\n    '\"ssl_protocol\":\"$ssl_protocol\",'\n    '\"status\":\"$status\",'\n    '\"bytes_sent\":\"$bytes_sent\",'\n    '\"http_referer\":\"$http_referer\",'\n    '\"http_user_agent\":\"$http_user_agent\",'\n    '\"upstream_response_time\":\"$upstream_response_time\",'\n    '\"upstream_addr\":\"$upstream_addr\",'\n    '\"upstream_connect_time\":\"$upstream_connect_time\",'\n    '\"upstream_cache_status\":\"$upstream_cache_status\",'\n    '\"tcpinfo_rtt\":\"$tcpinfo_rtt\",'\n    '\"tcpinfo_rttvar\":\"$tcpinfo_rttvar\"'\n    '}';\n\n\n\n    access_log  /var/log/nginx/access.log  main3;\n\n    sendfile        on;\n    #tcp_nopush     on;\n\n    keepalive_timeout  65;\n\n\n    upstream backend_prod {\n        zone backend_prod 64k;\n        server backend01:80;\n        server backend02:80;\n    }\n\n    upstream backend_preprod {\n        zone backend_preprod 64k;\n        server backend03:80;\n    }\n\n    split_clients \"${time_iso8601}\" $backend_key {\n        20.0%   \"backend_preprod\";\n        *       \"backend_prod\";\n    }\n\n    server {\n        listen 80 default_server;\n        server_name $hostname;\n\n        location / {\n        proxy_set_header Dog-Name \"kishi\";\n        proxy_pass    http://$backend_key;\n        }\n}\n\n}\n"
 |> IO.puts()
+```
+
+## Clean Up
+
+```elixir
+GenServer.cast(Stats, :clear)
 ```
