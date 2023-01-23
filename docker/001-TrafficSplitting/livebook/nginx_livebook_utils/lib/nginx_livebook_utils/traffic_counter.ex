@@ -2,7 +2,7 @@ defmodule NginxLivebookUtils.TrafficCounter do
   use GenServer
 
   ## Client
-  def start_link() do
+  def start_link(_opts) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
@@ -35,7 +35,7 @@ defmodule NginxLivebookUtils.TrafficCounter do
   # Get the request counts formatted for charting
   # [{x: "192.168.0.1", y: 23}, ...]
   @impl true
-  def handle_call(:for_chart, _from, %{ id_mappings: id_mappings, stats } = state) do
+  def handle_call(:for_chart, _from, %{ id_mappings: id_mappings, stats: stats } = state) do
     data =
       Map.keys(stats)
       |> Enum.map(fn key ->
@@ -53,7 +53,7 @@ defmodule NginxLivebookUtils.TrafficCounter do
   def handle_call(:raw, _from, %{ id_mappings: id_mappings, stats: stats } = state) do
     output = id_mappings |> Enum.reduce(fn {id, mapping}, acc ->
       stat = Map.get(stats, id, 0)
-      Map.puts(acc, mapping, stat)
+      Map.put(acc, mapping, stat)
     end)
     |> Map.merge(stats)
 
@@ -72,7 +72,7 @@ defmodule NginxLivebookUtils.TrafficCounter do
           {current_value, current_value + 1}
       end)
 
-    {:noreply, Map.puts(state, :stats, updated_stats)}
+    {:noreply, Map.put(state, :stats, updated_stats)}
   end
 
   # Clear the counter
@@ -83,7 +83,7 @@ defmodule NginxLivebookUtils.TrafficCounter do
 
   @impl true
   def handle_cast({:set_mappings, mappings}, stats) do
-    {:noreply, Map.puts(stats, :id_mappings, mappings)}
+    {:noreply, Map.put(stats, :id_mappings, mappings)}
   end
 end
 

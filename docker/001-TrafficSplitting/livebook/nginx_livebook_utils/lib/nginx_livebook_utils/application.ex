@@ -10,8 +10,6 @@ defmodule NginxLivebookUtils.Application do
     children = [
       NginxLivebookUtils.TrafficCounter, 
       NginxLivebookUtils.UdpLogParser
-      # Starts a worker by calling: NginxLivebookUtils.Worker.start_link(arg)
-      # {NginxLivebookUtils.Worker, arg}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

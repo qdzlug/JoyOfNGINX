@@ -4,7 +4,9 @@ defmodule NginxLivebookUtils.UdpLogParser do
   use GenServer
 
   ## Client
-  def start_link(port \\ 514) do
+  def start_link(opts) do
+    port  = Keyword.get(opts, :port, 514)
+    IO.inspect(port, label: :port_in_start_link)
     GenServer.start_link(__MODULE__, port, name: __MODULE__)
   end
 
@@ -14,17 +16,20 @@ defmodule NginxLivebookUtils.UdpLogParser do
 
   ## Server
 
+  @impl true
   def init(port) do
-    {:ok, socket} = :gen_udp.open(port, [:binary, active: true])
+    IO.inspect(port, label: :da_port)
+    {:ok, socket} = :gen_udp.open(port, [:binary, active: true]) |> IO.inspect(label: :gen_udp)
     {:ok, %{handler_fn: nil, socket: socket}}
   end
 
   @impl true
   def handle_cast({:set_packet_handler, handler_fn}, state) do
-    {:noreply, Map.puts(state, handler_fn: handler_fn)}
+    {:noreply, Map.put(state, :handler_fn, handler_fn)}
   end
 
-  def handle_info({:udp, _socket, _address, _port, data}, %{socket: socket} = state) do
+  @impl true
+  def handle_info({:udp, _socket, _address, _port, data}, state) do
     handle_packet(data, state)
   end
 
