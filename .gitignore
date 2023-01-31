@@ -4,3 +4,8 @@ deployments/nginx.ssh.config
 deployments/NGINXPlus/files/license/
 !/docker/Plus/nginx.crt
 !/docker/Plus/nginx.key
+!/deployments/InstanceManagerAgent/nginx.ansible.hosts
+!/deployments/NGINXPlus/nginx.ansible.hosts
+!/infrastructure/standalone/nginx.pem
+!/infrastructure/standalone/test.plan
+!/infrastructure/standalone/.terraform/
